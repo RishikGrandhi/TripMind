@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-09-25T06:50:46.882699Z",
+  "scenario_count": 6,
+  "deterministic_replay_count": 6,
+  "expectation_met_count": 6,
+  "results": [
+    {
+      "scenario_id": "SC-008",
+      "name": "Weather-aware activity adaptation",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 6,
+      "ordered_actions": [
+        "get_weather",
+        "search_activities",
+        "search_flights",
+        "search_hotels",
+        "build_candidate",
+        "validate"
+      ],
+      "tool_calls": 4,
+      "tools_used": [
+        "WeatherTool.get_forecast",
+        "ActivitySearchTool.search_activities",
+        "FlightSearchTool.search_flights",
+        "HotelSearchTool.search_hotels"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 0,
+      "initial_cost": "38500.00",
+      "final_cost": "38500.00",
+      "violations": [],
+      "replanning_attempts": 0,
+      "final_feasible": true,
+      "preference_score": "84.60",
+      "termination_reason": "agent_completed",
+      "deterministic_replay": true,
+      "expectation_met": true
+    },
+    {
+      "scenario_id": "SC-009",
+      "name": "Flight alternative selection",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 6,
+      "ordered_actions": [
+        "search_flights",
+        "search_hotels",
+        "search_activities",
+        "build_candidate",
+        "validate",
+        "search_cheaper_flight",
+        "search_cheaper_hotel",
+        "propose_corrective_action"
+      ],
+      "tool_calls": 5,
+      "tools_used": [
+        "FlightSearchTool.search_flights",
+        "HotelSearchTool.search_hotels",
+        "ActivitySearchTool.search_activities"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 0,
+      "initial_cost": "40300.00",
+      "final_cost": "12200.00",
+      "violations": [],
+      "replanning_attempts": 2,
+      "final_feasible": true,
+      "preference_score": "46.87",
+      "termination_reason": "completed_after_replanning",
+      "deterministic_replay": true,
+      "expectation_met": true
+    },
+    {
+      "scenario_id": "SC-010",
+      "name": "Hotel alternative selection",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 5,
+      "ordered_actions": [
+        "search_hotels",
+        "search_flights",
+        "build_candidate",
+        "validate",
+        "search_cheaper_hotel",
+        "propose_corrective_action"
+      ],
+      "tool_calls": 3,
+      "tools_used": [
+        "HotelSearchTool.search_hotels",
+        "FlightSearchTool.search_flights"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 0,
+      "initial_cost": "38000.00",
+      "final_cost": "18200.00",
+      "violations": [],
+      "replanning_attempts": 1,
+      "final_feasible": true,
+      "preference_score": "75.45",
+      "termination_reason": "completed_after_replanning",
+      "deterministic_replay": true,
+      "expectation_met": true
+    },
+    {
+      "scenario_id": "SC-011",
+      "name": "Multi-tool dependency",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 5,
+      "ordered_actions": [
+        "get_route",
+        "search_hotels",
+        "search_activities",
+        "build_candidate",
+        "validate"
+      ],
+      "tool_calls": 3,
+      "tools_used": [
+        "RouteTool.calculate_route",
+        "HotelSearchTool.search_hotels",
+        "ActivitySearchTool.search_activities"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 0,
+      "initial_cost": "32500.00",
+      "final_cost": "32500.00",
+      "violations": [],
+      "replanning_attempts": 0,
+      "final_feasible": true,
+      "preference_score": "89.17",
+      "termination_reason": "agent_completed",
+      "deterministic_replay": true,
+      "expectation_met": true
+    },
+    {
+      "scenario_id": "SC-012",
+      "name": "External tool failure",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 1,
+      "ordered_actions": [
+        "get_weather",
+        "deterministic_planning_fallback"
+      ],
+      "tool_calls": 1,
+      "tools_used": [
+        "WeatherTool.get_forecast"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 1,
+      "initial_cost": "38500.00",
+      "final_cost": "38500.00",
+      "violations": [],
+      "replanning_attempts": 0,
+      "final_feasible": true,
+      "preference_score": "74.60",
+      "termination_reason": "external_tool_timeout",
+      "deterministic_replay": true,
+      "expectation_met": true
+    },
+    {
+      "scenario_id": "SC-013",
+      "name": "Agent iteration limit",
+      "expected_status": "completed",
+      "final_status": "completed",
+      "agent_steps": 1,
+      "ordered_actions": [
+        "search_flights",
+        "agent_loop",
+        "deterministic_planning_fallback"
+      ],
+      "tool_calls": 1,
+      "tools_used": [
+        "FlightSearchTool.search_flights"
+      ],
+      "rejected_actions": 0,
+      "provider_failures": 0,
+      "initial_cost": "38500.00",
+      "final_cost": "38500.00",
+      "violations": [],
+      "replanning_attempts": 0,
+      "final_feasible": true,
+      "preference_score": "84.60",
+      "termination_reason": "maximum_agent_steps_reached",
+      "deterministic_replay": true,
+      "expectation_met": true
+    }
+  ]
+}

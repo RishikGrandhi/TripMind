@@ -1,6 +1,6 @@
 # TripMind deterministic evaluation results
 
-Generated: 2026-09-24T14:12:20.167788+00:00
+Generated: 2026-09-25T06:49:44.328980+00:00
 
 These results come from executing the real local planning pipeline against the versioned demo dataset. They are not live-travel or ML benchmark claims.
 
@@ -23,3 +23,7 @@ These results come from executing the real local planning pipeline against the v
 - Correct impossible-case detection: yes
 
 `SC-006` is intentionally infeasible; its unresolved hard violation is the correct outcome.
+
+## Separate mocked agentic evaluation
+
+SC-008 through SC-013 are reported in `docs/agentic-evaluation-results.md`. They use fixed mocked agent/provider behavior and never alter or replace this local deterministic baseline.

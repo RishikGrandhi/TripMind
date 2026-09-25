@@ -142,6 +142,10 @@ def write_report(report: EvaluationReport, markdown_path: Path, json_path: Path)
         f"- Correct impossible-case detection: {'yes' if report.correct_infeasible_detection else 'no'}",
         "",
         "`SC-006` is intentionally infeasible; its unresolved hard violation is the correct outcome.",
+        "",
+        "## Separate mocked agentic evaluation",
+        "",
+        "SC-008 through SC-013 are reported in `docs/agentic-evaluation-results.md`. They use fixed mocked agent/provider behavior and never alter or replace this local deterministic baseline.",
     ])
     markdown_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 

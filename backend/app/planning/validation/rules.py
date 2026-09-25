@@ -340,7 +340,7 @@ def check_route_feasibility(context: ValidationContext) -> RuleOutcome:
             violations.append(
                 ConstraintViolation(
                     code=ViolationCode.ROUTE_INFEASIBLE,
-                    message=f"Transport reference {item.option_id} does not exist in demo data.",
+                    message=f"Transport reference {item.option_id} is not present in the validated candidate set.",
                     item_id=item.id,
                     details={"option_id": item.option_id, "item_type": item.item_type},
                 )

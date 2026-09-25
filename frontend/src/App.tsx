@@ -9,6 +9,7 @@ import { ReplanningTimeline } from './components/ReplanningTimeline'
 import { RequestForm } from './components/RequestForm'
 import { RecentPlans } from './components/RecentPlans'
 import { ValidationPanel } from './components/ValidationPanel'
+import { AgentActivity } from './components/AgentActivity'
 import { Card } from './components/ui'
 import { label } from './lib/format'
 
@@ -88,7 +89,7 @@ function App() {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500 text-xl font-black text-slate-950">T</div>
             <div><h1 className="text-xl font-black tracking-tight">TripMind</h1><p className="text-xs text-slate-500">Agentic Constraint-Aware Travel Planner</p></div>
           </div>
-          <div className="hidden items-center gap-2 text-xs font-semibold text-slate-500 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-500" />Local AI · Deterministic validation</div>
+          <div className="hidden items-center gap-2 text-xs font-semibold text-slate-500 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-500" />Typed agent · Deterministic validation</div>
         </div>
       </header>
 
@@ -106,7 +107,7 @@ function App() {
         {loading && (
           <div role="status" className="mt-6 flex items-center gap-4 rounded-2xl border border-teal-200 bg-teal-50 p-5 text-teal-950">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-teal-200 border-t-teal-700" />
-            <div><p className="font-bold">Building your plan locally…</p><p className="mt-1 text-sm text-teal-800">TripMind is extracting constraints, building a candidate, validating it, and replanning if required.</p></div>
+            <div><p className="font-bold">Building your plan…</p><p className="mt-1 text-sm text-teal-800">TripMind is extracting constraints, selecting registered tools, validating the candidate, and replanning if required.</p></div>
           </div>
         )}
 
@@ -130,6 +131,7 @@ function App() {
                 <p className="mt-2 text-sm text-slate-600">This saved API result has been reopened from SQLite. Its authoritative TripState is rendered below.</p>
               </Card>
             )}
+            <AgentActivity state={state} />
             <ReplanningTimeline state={state} />
             {state.current_validation && <ValidationPanel validation={state.current_validation} />}
             {state.status === 'infeasible' && state.current_validation && state.current_validation.violations.length > 0 && (
@@ -152,7 +154,7 @@ function App() {
           </div>
         )}
 
-        <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-6 text-xs text-slate-400"><span>TripMind academic demo · No booking or live inventory</span><span>Local dataset · Exact cost engine · Bounded replanning</span></footer>
+        <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-6 text-xs text-slate-400"><span>TripMind academic demo · No booking</span><span>Typed sources · Exact cost engine · Bounded replanning</span></footer>
       </div>
     </main>
   )

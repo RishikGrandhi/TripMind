@@ -71,6 +71,9 @@ class CandidateBuilder:
                 destination,
                 rooms,
                 preferences,
+                check_in=transition_date,
+                check_out=segment_end,
+                adults=constraints.travelers,
                 selected=(overrides.hotel_by_segment.get(index) if overrides else None),
             )
             items.extend(
@@ -101,6 +104,95 @@ class CandidateBuilder:
         days = self._build_days(constraints.start_date, constraints.end_date, items)
         costs = calculate_cost_breakdown(item for day in days for item in day.items)
         return Itinerary(id=f"candidate-{request_id}", days=days, costs=costs)
+
+    def build_from_gathered_candidates(self, state: TripState) -> Itinerary:
+        """Build only from normalized options already gathered by the agent loop."""
+        constraints = state.constraints
+        preferences = state.preferences
+        rooms = ceil(constraints.travelers / HOTEL_GUESTS_PER_ROOM)
+        transition_dates = self._transition_dates(
+            constraints, len(constraints.destination_city_ids)
+        )
+        overrides = CandidateSelectionOverrides()
+        origin = constraints.origin_city_id
+        for index, (destination, travel_date) in enumerate(
+            zip(constraints.destination_city_ids, transition_dates, strict=True)
+        ):
+            transports: dict[TransportMode, list[TransportOption]] = {}
+            flights = [
+                option
+                for option in state.flight_candidates
+                if option.origin_city_id == origin
+                and option.destination_city_id == destination
+                and option.departure.date() == travel_date
+                and (
+                    option.available_seats is None
+                    or option.available_seats >= constraints.travelers
+                )
+            ]
+            if flights:
+                transports[TransportMode.FLIGHT] = flights
+            for route in state.route_candidates:
+                if (
+                    route.origin_city_id == origin
+                    and route.destination_city_id == destination
+                    and route.is_feasible
+                ):
+                    transports.setdefault(route.mode, []).append(route)
+
+            selected_transport: TransportOption | None = None
+            for mode in self._ordered_modes(constraints, preferences):
+                options = transports.get(mode, [])
+                if not options:
+                    continue
+                if mode == TransportMode.FLIGHT:
+                    selected_transport = self._select_flight(
+                        [item for item in options if isinstance(item, FlightOption)],
+                        preferences,
+                    )
+                else:
+                    selected_transport = min(
+                        options,
+                        key=lambda item: (
+                            item.duration_minutes,
+                            item.estimated_cost if isinstance(item, RouteInfo) else item.price,
+                            item.id,
+                        ),
+                    )
+                break
+            if selected_transport is None:
+                raise CandidateBuildError(
+                    f"Agent has not gathered usable transport from {origin} to {destination}"
+                )
+            overrides.transport_by_segment[index] = selected_transport
+
+            hotels = [
+                hotel
+                for hotel in state.hotel_candidates
+                if hotel.city_id == destination
+                and (hotel.available_rooms is None or hotel.available_rooms >= rooms)
+            ]
+            if not hotels:
+                raise CandidateBuildError(
+                    f"Agent has not gathered a usable hotel in {destination}"
+                )
+            overrides.hotel_by_segment[index] = min(
+                hotels, key=lambda item: self._hotel_rank(item, preferences)
+            )
+            overrides.activities_by_segment[index] = [
+                activity
+                for activity in state.activity_candidates
+                if activity.city_id == destination
+            ]
+            origin = destination
+        return self.build(state, overrides)
+
+    def has_required_gathered_candidates(self, state: TripState) -> bool:
+        try:
+            self.build_from_gathered_candidates(state)
+        except (CandidateBuildError, ValueError):
+            return False
+        return True
 
     @staticmethod
     def _request_parts(
@@ -202,7 +294,7 @@ class CandidateBuilder:
                 raise CandidateBuildError(
                     f"Selected flight {selected.id} does not depart on {travel_date}"
                 )
-            if selected.available_seats < travelers:
+            if selected.available_seats is not None and selected.available_seats < travelers:
                 raise CandidateBuildError(f"Selected flight {selected.id} lacks required seats")
             return CandidateBuilder._flight_item(index, selected, travelers), selected.arrival
 
@@ -257,6 +349,11 @@ class CandidateBuilder:
             destination_city_id=flight.destination_city_id,
             duration_minutes=flight.duration_minutes,
             notes=f"{flight.stops} stop(s); fare for {travelers} traveler(s)",
+            source=flight.source,
+            is_live=flight.is_live,
+            is_estimate=flight.is_estimate,
+            price_source=flight.price_source,
+            fallback_from=flight.fallback_from,
         )
 
     @staticmethod
@@ -274,7 +371,16 @@ class CandidateBuilder:
             origin_city_id=route.origin_city_id,
             destination_city_id=route.destination_city_id,
             duration_minutes=route.duration_minutes,
-            notes=f"{route.distance_km} km; stored local demo route",
+            notes=(
+                f"{route.distance_km} km; estimated route cost"
+                if route.is_estimate
+                else f"{route.distance_km} km; stored local demo route"
+            ),
+            source=route.source,
+            is_live=route.is_live,
+            is_estimate=route.is_estimate,
+            price_source=route.price_source,
+            fallback_from=route.fallback_from,
         )
 
     def _select_hotel(
@@ -282,6 +388,9 @@ class CandidateBuilder:
         city_id: str,
         rooms: int,
         preferences: SoftPreferences,
+        check_in: date,
+        check_out: date,
+        adults: int,
         selected: HotelOption | None,
     ) -> HotelOption:
         if selected is not None:
@@ -289,21 +398,37 @@ class CandidateBuilder:
                 raise CandidateBuildError(
                     f"Selected hotel {selected.id} is not located in {city_id}"
                 )
-            if selected.available_rooms < rooms:
+            if selected.available_rooms is not None and selected.available_rooms < rooms:
                 raise CandidateBuildError(f"Selected hotel {selected.id} lacks required rooms")
             return selected
-        hotels = self._tools.hotels.search_hotels(city_id, rooms=rooms)
+        hotels = self._tools.hotels.search_hotels(
+            city_id,
+            rooms=rooms,
+            check_in=check_in,
+            check_out=check_out,
+            adults=adults,
+        )
         if not hotels:
             raise CandidateBuildError(f"No usable hotel option in {city_id} for {rooms} room(s)")
-        preferred = {amenity.casefold() for amenity in preferences.preferred_hotel_amenities}
+        return min(hotels, key=lambda item: self._hotel_rank(item, preferences))
 
-        def rank(hotel: HotelOption) -> tuple[object, ...]:
-            amenities = {amenity.casefold() for amenity in hotel.amenities}
-            matches = len(preferred & amenities)
-            all_match = bool(preferred) and preferred.issubset(amenities)
-            return (-int(all_match), -matches, -hotel.rating, hotel.price_per_night, hotel.id)
-
-        return min(hotels, key=rank)
+    @staticmethod
+    def _hotel_rank(
+        hotel: HotelOption, preferences: SoftPreferences
+    ) -> tuple[object, ...]:
+        preferred = {
+            amenity.casefold() for amenity in preferences.preferred_hotel_amenities
+        }
+        amenities = {amenity.casefold() for amenity in hotel.amenities}
+        matches = len(preferred & amenities)
+        all_match = bool(preferred) and preferred.issubset(amenities)
+        return (
+            -int(all_match),
+            -matches,
+            -(hotel.rating or Decimal("0")),
+            hotel.price_per_night,
+            hotel.id,
+        )
 
     @staticmethod
     def _build_hotel_nights(
@@ -332,6 +457,11 @@ class CandidateBuilder:
                     city_id=city_id,
                     duration_minutes=540,
                     notes=f"{rooms} room(s), one night; checkout at 07:00 in demo schedule",
+                    source=hotel.source,
+                    is_live=hotel.is_live,
+                    is_estimate=hotel.is_estimate,
+                    price_source=hotel.price_source,
+                    fallback_from=hotel.fallback_from,
                 )
             )
             current += timedelta(days=1)
@@ -398,6 +528,8 @@ class CandidateBuilder:
         travelers: int,
         occupied: list[ItineraryItem],
     ) -> ItineraryItem | None:
+        if activity.price is None or activity.duration_minutes is None:
+            return None
         current = first_date
         opening = time.fromisoformat(activity.opening_time or "10:00")
         closing = time.fromisoformat(activity.closing_time or "20:00")
@@ -420,6 +552,11 @@ class CandidateBuilder:
                     city_id=city_id,
                     duration_minutes=activity.duration_minutes,
                     notes=f"{activity.category}; price for {travelers} traveler(s)",
+                    source=activity.source,
+                    is_live=activity.is_live,
+                    is_estimate=activity.is_estimate,
+                    price_source=activity.price_source,
+                    fallback_from=activity.fallback_from,
                 )
             current += timedelta(days=1)
         return None

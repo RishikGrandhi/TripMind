@@ -15,6 +15,7 @@ from app.extraction.models import (
 from app.llm import (
     DeterministicFallbackProvider,
     ExtractionContext,
+    GroqProvider,
     LLMProvider,
     LLMProviderError,
     OllamaProvider,
@@ -89,7 +90,10 @@ class NaturalLanguagePlanningService:
             intent = self._normalize_intent(intent)
             travel_request = self._to_travel_request(query, intent)
         except (LLMProviderError, ConstraintExtractionError, ValidationError) as exc:
-            if self._settings.llm_provider != LLMProviderName.OLLAMA:
+            if self._settings.llm_provider not in {
+                LLMProviderName.OLLAMA,
+                LLMProviderName.GROQ,
+            }:
                 if isinstance(exc, ConstraintExtractionError):
                     raise
                 raise ConstraintExtractionError(
@@ -108,14 +112,17 @@ class NaturalLanguagePlanningService:
                     raise ConstraintExtractionError(
                         str(fallback_exc),
                         missing_fields=fallback_exc.missing_fields,
-                        warnings=[*fallback_exc.warnings, f"Ollama fallback reason: {fallback_reason}"],
+                        warnings=[
+                            *fallback_exc.warnings,
+                            f"{requested.title()} fallback reason: {fallback_reason}",
+                        ],
                         requested_provider=requested,
                         provider_used=provider_used,
                         fallback_used=True,
                         fallback_reason=fallback_reason,
                     ) from fallback_exc
                 raise ConstraintExtractionError(
-                    "Neither Ollama nor the deterministic fallback produced a valid request.",
+                    f"Neither {requested.title()} nor the deterministic fallback produced a valid request.",
                     warnings=[str(fallback_exc)],
                     requested_provider=requested,
                     provider_used=provider_used,
@@ -125,8 +132,29 @@ class NaturalLanguagePlanningService:
 
         warnings = list(intent.warnings)
         if fallback_used:
-            warnings.append(f"Ollama extraction failed; deterministic fallback used ({fallback_reason}).")
+            warnings.append(
+                f"{requested.title()} extraction failed; deterministic fallback used "
+                f"({fallback_reason})."
+            )
         state = self._coordinator.plan(travel_request)
+        if state.fallback_used and not fallback_used:
+            warnings.append(
+                "Groq planning failed; deterministic planning fallback used "
+                f"({state.fallback_reason})."
+            )
+        planning_source = (
+            "groq_agent_loop"
+            if state.requested_provider == "groq" and not state.fallback_used
+            else "deterministic_coordinator"
+        )
+        replanning_source = (
+            "groq_proposals_guarded_by_deterministic_policy"
+            if any(
+                item.provider == "groq" and item.status.value == "approved"
+                for item in state.agent_trace
+            )
+            else "deterministic_policy"
+        )
         return NaturalLanguagePlanResponse(
             original_query=query,
             extracted_request=travel_request,
@@ -138,6 +166,12 @@ class NaturalLanguagePlanningService:
                 assumptions=intent.assumptions,
                 warnings=warnings,
             ),
+            sources={
+                "planning": planning_source,
+                "travel_source": _travel_source(state),
+                "validation": "deterministic",
+                "replanning": replanning_source,
+            },
             result=state,
         )
 
@@ -196,6 +230,16 @@ class NaturalLanguagePlanningService:
     def _create_primary_provider(self) -> LLMProvider:
         if self._settings.llm_provider == LLMProviderName.FALLBACK:
             return self._fallback
+        if self._settings.llm_provider == LLMProviderName.GROQ:
+            return GroqProvider(
+                api_key=(
+                    self._settings.groq_api_key.get_secret_value()
+                    if self._settings.groq_api_key is not None
+                    else None
+                ),
+                model=self._settings.groq_model,
+                timeout_seconds=self._settings.groq_timeout_seconds,
+            )
         return OllamaProvider(
             base_url=self._settings.ollama_base_url,
             model=self._settings.ollama_model,
@@ -284,15 +328,64 @@ def create_natural_language_planning_service(
 ) -> NaturalLanguagePlanningService:
     configured = settings or get_settings()
     local_catalog = catalog or load_catalog(DEFAULT_DATA_DIR)
+    fallback_provider = DeterministicFallbackProvider()
+    selected_provider = primary_provider
+    if selected_provider is None:
+        if configured.llm_provider == LLMProviderName.FALLBACK:
+            selected_provider = fallback_provider
+        elif configured.llm_provider == LLMProviderName.GROQ:
+            selected_provider = GroqProvider(
+                api_key=(
+                    configured.groq_api_key.get_secret_value()
+                    if configured.groq_api_key is not None
+                    else None
+                ),
+                model=configured.groq_model,
+                timeout_seconds=configured.groq_timeout_seconds,
+            )
+        else:
+            selected_provider = OllamaProvider(
+                base_url=configured.ollama_base_url,
+                model=configured.ollama_model,
+                timeout_seconds=configured.ollama_timeout_seconds,
+            )
     planning_coordinator = coordinator or create_planning_coordinator(
-        configured, catalog=local_catalog
+        configured,
+        catalog=local_catalog,
+        agent_provider=(
+            selected_provider
+            if configured.llm_provider == LLMProviderName.GROQ
+            and hasattr(selected_provider, "decide_next_action")
+            else None
+        ),
+        proposal_provider=(
+            selected_provider
+            if configured.llm_provider == LLMProviderName.GROQ
+            and hasattr(selected_provider, "propose_action")
+            else None
+        ),
     )
     return NaturalLanguagePlanningService(
         settings=configured,
         catalog=local_catalog,
         coordinator=planning_coordinator,
-        primary_provider=primary_provider,
+        primary_provider=selected_provider,
+        fallback_provider=fallback_provider,
     )
+
+
+def _travel_source(state: TripState) -> str:
+    if state.current_itinerary is None:
+        return "unavailable"
+    items = [item for day in state.current_itinerary.days for item in day.items]
+    if any(item.fallback_from is not None for item in items):
+        return "mixed_explicit_fallback"
+    sources = list(dict.fromkeys(item.source.value for item in items))
+    if sources == ["local_demo"]:
+        return "local_demo_dataset"
+    if len(sources) == 1:
+        return sources[0]
+    return "mixed:" + ",".join(sources)
 
 
 def _provider_failure_reason(exc: Exception) -> str:

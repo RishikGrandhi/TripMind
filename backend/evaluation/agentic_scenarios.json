@@ -1,0 +1,115 @@
+[
+  {
+    "id": "SC-008",
+    "name": "Weather-aware activity adaptation",
+    "expected_status": "completed",
+    "weather_mode": "rainy",
+    "request": {
+      "request_id": "agentic-sc-008",
+      "natural_language_request": "Mumbai to Goa with outdoor interests; adapt activities if weather is poor.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"50000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_transport_modes":["flight"],"preferred_activity_categories":["nature","culture"]}
+    },
+    "decisions": [
+      {"action":"get_weather","reason_code":"outdoor_preference_needs_weather","parameters":{"city_id":"city-goi","target_date":"2027-01-16"}},
+      {"action":"search_activities","reason_code":"rain_supports_indoor_alternatives","parameters":{"city_id":"city-goi","category":"culture"}},
+      {"action":"search_flights","reason_code":"need_transport","parameters":{"origin_city_id":"city-mum","destination_city_id":"city-goi","travel_date":"2027-01-15","travelers":1}},
+      {"action":"search_hotels","reason_code":"need_stay","parameters":{"city_id":"city-goi","rooms":1}},
+      {"action":"build_candidate","reason_code":"required_options_ready"},
+      {"action":"validate","reason_code":"authoritative_validation_required"}
+    ]
+  },
+  {
+    "id": "SC-009",
+    "name": "Flight alternative selection",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "agentic-sc-009",
+      "natural_language_request": "Mumbai to Goa under 30000 rupees, initially preferring SkyLux.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"30000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_airlines":["SkyLux Demo"],"preferred_hotel_amenities":["pool","spa"],"preferred_activity_categories":["leisure"]}
+    },
+    "decisions": [
+      {"action":"search_flights","reason_code":"need_flight_options","parameters":{"origin_city_id":"city-mum","destination_city_id":"city-goi","travel_date":"2027-01-15","travelers":1}},
+      {"action":"search_hotels","reason_code":"need_hotel_options","parameters":{"city_id":"city-goi","rooms":1}},
+      {"action":"search_activities","reason_code":"need_activity_options","parameters":{"city_id":"city-goi"}},
+      {"action":"build_candidate","reason_code":"required_options_ready"},
+      {"action":"validate","reason_code":"authoritative_validation_required"},
+      {"action":"propose_corrective_action","reason_code":"budget_violation_requires_repair"}
+    ],
+    "proposals": [
+      {"action":"search_cheaper_flight","reason_code":"replace_expensive_flight"},
+      {"action":"search_cheaper_hotel","reason_code":"replace_expensive_hotel"},
+      {"action":"remove_optional_activity","reason_code":"remove_optional_cost"}
+    ]
+  },
+  {
+    "id": "SC-010",
+    "name": "Hotel alternative selection",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "agentic-sc-010",
+      "natural_language_request": "Mumbai to Goa with a 3000 rupee nightly hotel ceiling.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"80000","max_hotel_price_per_night":"3000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_hotel_amenities":["pool","spa"]}
+    },
+    "decisions": [
+      {"action":"search_hotels","reason_code":"need_hotel_options","parameters":{"city_id":"city-goi","rooms":1}},
+      {"action":"search_flights","reason_code":"need_flight_options","parameters":{"origin_city_id":"city-mum","destination_city_id":"city-goi","travel_date":"2027-01-15","travelers":1}},
+      {"action":"build_candidate","reason_code":"required_options_ready"},
+      {"action":"validate","reason_code":"authoritative_validation_required"},
+      {"action":"propose_corrective_action","reason_code":"hotel_ceiling_requires_repair"}
+    ],
+    "proposals": [
+      {"action":"search_cheaper_hotel","reason_code":"select_compliant_hotel"}
+    ]
+  },
+  {
+    "id": "SC-011",
+    "name": "Multi-tool dependency",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "agentic-sc-011",
+      "natural_language_request": "Drive from Mumbai to Goa, stay three nights and include culture.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"60000","allowed_transport_modes":["car"]},
+      "preferences": {"preferred_transport_modes":["car"],"preferred_activity_categories":["culture"]}
+    },
+    "decisions": [
+      {"action":"get_route","reason_code":"flight_not_allowed","parameters":{"origin_city_id":"city-mum","destination_city_id":"city-goi","mode":"car"}},
+      {"action":"search_hotels","reason_code":"route_result_establishes_arrival_city","parameters":{"city_id":"city-goi","rooms":1}},
+      {"action":"search_activities","reason_code":"need_culture_options","parameters":{"city_id":"city-goi","category":"culture"}},
+      {"action":"build_candidate","reason_code":"route_and_stay_ready"},
+      {"action":"validate","reason_code":"authoritative_validation_required"}
+    ]
+  },
+  {
+    "id": "SC-012",
+    "name": "External tool failure",
+    "expected_status": "completed",
+    "fail_weather": true,
+    "request": {
+      "request_id": "agentic-sc-012",
+      "natural_language_request": "Mumbai to Goa with a weather check.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"50000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_activity_categories":["nature"]}
+    },
+    "decisions": [
+      {"action":"get_weather","reason_code":"weather_requested","parameters":{"city_id":"city-goi","target_date":"2027-01-16"}}
+    ]
+  },
+  {
+    "id": "SC-013",
+    "name": "Agent iteration limit",
+    "expected_status": "completed",
+    "max_agent_steps": 1,
+    "request": {
+      "request_id": "agentic-sc-013",
+      "natural_language_request": "Mumbai to Goa with a deliberately bounded agent run.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"50000","allowed_transport_modes":["flight"]},
+      "preferences": {}
+    },
+    "decisions": [
+      {"action":"search_flights","reason_code":"need_transport","parameters":{"origin_city_id":"city-mum","destination_city_id":"city-goi","travel_date":"2027-01-15","travelers":1}}
+    ]
+  }
+]

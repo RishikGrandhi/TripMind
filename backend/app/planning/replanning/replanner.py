@@ -9,6 +9,8 @@ from pathlib import Path
 from app.core.config import Settings, get_settings
 from app.domain.models import (
     ActivityOption,
+    AgentTraceRecord,
+    AgentTraceStatus,
     CorrectiveAction,
     CorrectiveActionType,
     FlightOption,
@@ -26,6 +28,7 @@ from app.domain.models import (
     ValidationResult,
     ViolationCode,
 )
+from app.llm.base import ActionProposalContext, ActionProposalProvider, LLMProviderError
 from app.planning.candidate_builder import CandidateBuildError, CandidateBuilder
 from app.planning.replanning.policy import ReplanningPolicy
 from app.planning.selection import (
@@ -65,6 +68,7 @@ class ReplanningEngine:
         tools: ToolRegistry,
         catalog: LocalDataCatalog,
         policy: ReplanningPolicy | None = None,
+        proposal_provider: ActionProposalProvider | None = None,
         max_attempts: int = 3,
         max_tool_calls: int = 20,
     ) -> None:
@@ -77,6 +81,7 @@ class ReplanningEngine:
         self._tools = tools
         self._catalog = catalog
         self._policy = policy or ReplanningPolicy()
+        self._proposal_provider = proposal_provider
         self._max_attempts = max_attempts
         self._max_tool_calls = max_tool_calls
 
@@ -89,9 +94,7 @@ class ReplanningEngine:
         try:
             if working.current_itinerary is None:
                 working.current_itinerary = self._builder.build(working)
-            validation = self._validator.validate(
-                working.current_itinerary, working.constraints
-            )
+            validation = self._validator.validate_state(working)
         except (CandidateBuildError, ValueError) as exc:
             working.status = PlanningStatus.FAILED
             return ReplanningResult(
@@ -117,7 +120,13 @@ class ReplanningEngine:
 
         try:
             overrides = selection_overrides_from_itinerary(
-                working.current_itinerary, working.constraints, self._catalog
+                working.current_itinerary,
+                working.constraints,
+                self._catalog,
+                flight_candidates=working.flight_candidates,
+                hotel_candidates=working.hotel_candidates,
+                activity_candidates=working.activity_candidates,
+                route_candidates=working.route_candidates,
             )
         except ValueError as exc:
             working.status = PlanningStatus.FAILED
@@ -150,7 +159,7 @@ class ReplanningEngine:
             if not actions:
                 termination_reason = "no_legal_corrective_action"
                 break
-            action = actions[0]
+            action = self._select_action(working, validation, actions)
             if not self._policy.is_legal(action, validation):
                 termination_reason = "policy_proposed_illegal_action"
                 break
@@ -194,7 +203,15 @@ class ReplanningEngine:
 
             try:
                 rebuilt = self._builder.build(working, execution.overrides)
-                after_validation = self._validator.validate(rebuilt, working.constraints)
+                self._retain_selected_candidates(working, execution.overrides)
+                after_validation = self._validator.validate(
+                    rebuilt,
+                    working.constraints,
+                    flight_candidates=working.flight_candidates,
+                    hotel_candidates=working.hotel_candidates,
+                    activity_candidates=working.activity_candidates,
+                    route_candidates=working.route_candidates,
+                )
             except (CandidateBuildError, ValueError) as exc:
                 attempt = self._attempt_record(
                     attempt_number=attempt_number,
@@ -302,6 +319,118 @@ class ReplanningEngine:
             attempts_used=new_attempts,
             tool_calls_used=new_tool_calls,
         )
+
+    def _select_action(
+        self,
+        state: TripState,
+        validation: ValidationResult,
+        candidates: list[CorrectiveAction],
+    ) -> CorrectiveAction:
+        if self._proposal_provider is None:
+            return candidates[0]
+        provider_name = getattr(self._proposal_provider, "name", "configured_provider")
+        context = ActionProposalContext(
+            violation_codes=list(
+                dict.fromkeys(item.code for item in validation.violations)
+            ),
+            allowed_actions=list(
+                dict.fromkeys(item.action for item in candidates)
+            ),
+            state_summary={
+                "constraints": state.constraints.model_dump(mode="json"),
+                "current_total": (
+                    str(state.current_itinerary.costs.total)
+                    if state.current_itinerary is not None
+                    else None
+                ),
+                "selected_option_ids": (
+                    [
+                        item.option_id
+                        for day in state.current_itinerary.days
+                        for item in day.items
+                    ]
+                    if state.current_itinerary is not None
+                    else []
+                ),
+                "violations": [
+                    item.model_dump(mode="json") for item in validation.violations
+                ],
+                "previous_attempts": [
+                    attempt.model_dump(mode="json", exclude_none=True)
+                    for attempt in state.replanning_attempts
+                ],
+                "tool_results": [
+                    record.model_dump(mode="json", exclude_none=True)
+                    for record in state.tool_call_history
+                ],
+            },
+            candidate_actions=candidates,
+        )
+        try:
+            proposal = self._proposal_provider.propose_action(context)
+        except (LLMProviderError, ValueError) as exc:
+            reason = exc.code if isinstance(exc, LLMProviderError) else "invalid_proposal"
+            state.agent_trace.append(
+                AgentTraceRecord(
+                    step=len(state.agent_trace) + 1,
+                    provider=provider_name,
+                    action="propose_corrective_action",
+                    reason_code=reason,
+                    status=AgentTraceStatus.FALLBACK,
+                    result_summary=(
+                        "Provider proposal failed; deterministic policy selected a legal action"
+                    ),
+                    violation=validation.violations[0].code,
+                )
+            )
+            return candidates[0]
+
+        matches = [
+            candidate
+            for candidate in candidates
+            if candidate.action == proposal.action
+            and (proposal.target_id is None or candidate.target_id == proposal.target_id)
+        ]
+        if not matches or not self._policy.is_legal(matches[0], validation):
+            state.agent_trace.append(
+                AgentTraceRecord(
+                    step=len(state.agent_trace) + 1,
+                    provider=provider_name,
+                    action=proposal.action.value,
+                    reason_code=proposal.reason_code,
+                    parameters={"target_id": proposal.target_id},
+                    status=AgentTraceStatus.REJECTED,
+                    result_summary=(
+                        "Illegal or unusable corrective proposal rejected; "
+                        "deterministic policy fallback selected"
+                    ),
+                    violation=validation.violations[0].code,
+                )
+            )
+            return candidates[0]
+
+        selected = matches[0].model_copy(
+            update={
+                "parameters": {
+                    **matches[0].parameters,
+                    "proposal_provider": provider_name,
+                    "proposal_reason_code": proposal.reason_code,
+                }
+            }
+        )
+        state.agent_trace.append(
+            AgentTraceRecord(
+                step=len(state.agent_trace) + 1,
+                provider=provider_name,
+                action=selected.action.value,
+                reason_code=proposal.reason_code,
+                parameters={"target_id": selected.target_id},
+                status=AgentTraceStatus.APPROVED,
+                result_summary="Corrective proposal authorized by deterministic policy",
+                violation=selected.target_violation,
+            )
+        )
+        return selected
 
     def _execute_action(
         self,
@@ -439,10 +568,19 @@ class ReplanningEngine:
             else current.price_per_night
         )
         rooms = ceil(state.constraints.travelers / 2)
+        check_in = _segment_travel_date(state, segment)
+        check_out = (
+            _segment_travel_date(state, segment + 1)
+            if segment + 1 < len(state.constraints.destination_city_ids)
+            else state.constraints.end_date
+        )
         results = self._tools.hotels.search_hotels(
             current.city_id,
             max_price_per_night=None,
             rooms=rooms,
+            check_in=check_in,
+            check_out=check_out,
+            adults=state.constraints.travelers,
         )
         record = _tool_record(
             sequence,
@@ -451,6 +589,9 @@ class ReplanningEngine:
                 "city_id": current.city_id,
                 "max_price_per_night": None,
                 "rooms": rooms,
+                "check_in": check_in,
+                "check_out": check_out,
+                "adults": state.constraints.travelers,
             },
             len(results),
         )
@@ -479,7 +620,14 @@ class ReplanningEngine:
                 tool_name="HotelSearchTool.search_hotels",
                 facts=facts,
             )
-        replacement = min(alternatives, key=lambda item: (item.price_per_night, -item.rating, item.id))
+        replacement = min(
+            alternatives,
+            key=lambda item: (
+                item.price_per_night,
+                -(item.rating or Decimal("0")),
+                item.id,
+            ),
+        )
         changed = overrides.model_copy(deep=True)
         changed.hotel_by_segment[segment] = replacement
         return ActionExecution(
@@ -642,7 +790,7 @@ class ReplanningEngine:
                     [],
                     selected.id,
                     None,
-                    selected.price,
+                    selected.price or Decimal("0"),
                     Decimal("0"),
                 )
         return ActionExecution(overrides, False, "target_activity_not_selected", [])

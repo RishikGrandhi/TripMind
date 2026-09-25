@@ -1,4 +1,6 @@
 from app.domain.models import (
+    AgentTraceRecord,
+    AgentTraceStatus,
     ActivityOption,
     City,
     ConstraintCheck,
@@ -12,6 +14,7 @@ from app.domain.models import (
     ItineraryDay,
     ItineraryItem,
     PlanRequest,
+    PriceSource,
     PreferenceScore,
     ReplanningAttempt,
     ReplanningOutcome,
@@ -23,6 +26,8 @@ from app.domain.models import (
     TravelRequest,
     TripState,
     ValidationResult,
+    WeatherForecast,
+    WeatherResult,
 )
 
 __all__ = [name for name in globals() if not name.startswith("_")]

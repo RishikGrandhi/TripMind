@@ -10,6 +10,13 @@ export type PlanningStatus =
 
 export type TransportMode = 'flight' | 'train' | 'bus' | 'car' | 'walk'
 export type ItemType = 'flight' | 'hotel' | 'activity' | 'route'
+export type DataSource =
+  | 'local_demo'
+  | 'serpapi'
+  | 'stayingapi'
+  | 'geoapify'
+  | 'openweather'
+export type PriceSource = 'live_quote' | 'local_demo' | 'estimated' | 'unknown'
 
 export interface TravelConstraints {
   origin_city_id: string
@@ -55,6 +62,11 @@ export interface ItineraryItem {
   destination_city_id: string | null
   duration_minutes: number | null
   notes: string | null
+  source: DataSource
+  is_live: boolean
+  is_estimate: boolean
+  price_source: PriceSource
+  fallback_from: DataSource | null
 }
 
 export interface ItineraryDay {
@@ -139,6 +151,44 @@ export interface ToolCallRecord {
   error: string | null
 }
 
+export interface AgentTraceRecord {
+  step: number
+  provider: string
+  action: string
+  reason_code: string | null
+  tool: string | null
+  source: DataSource | null
+  parameters: Record<string, unknown>
+  status: 'succeeded' | 'approved' | 'rejected' | 'fallback' | 'failed'
+  result_summary: string | null
+  violation: string | null
+  before_component_id: string | null
+  after_component_id: string | null
+  before_value: string | number | null
+  after_value: string | number | null
+}
+
+export interface WeatherForecast {
+  forecast_at: string
+  temperature_c: string
+  feels_like_c: string | null
+  condition: string
+  precipitation_probability: string | null
+  rain_mm: string | null
+  humidity_percent: number | null
+  wind_speed_mps: string | null
+}
+
+export interface WeatherResult {
+  city_id: string
+  requested_date: string
+  weather_available: boolean
+  reason: string | null
+  forecasts: WeatherForecast[]
+  source: DataSource
+  is_live: boolean
+}
+
 export interface PreferenceScore {
   total: string
   components: Record<string, string>
@@ -158,6 +208,13 @@ export interface TripState {
   validation_history: ValidationResult[]
   replanning_attempts: ReplanningAttempt[]
   tool_call_history: ToolCallRecord[]
+  agent_trace: AgentTraceRecord[]
+  weather_results: WeatherResult[]
+  requested_provider: string
+  provider_used: string
+  fallback_used: boolean
+  fallback_reason: string | null
+  agent_steps_used: number
   preference_score: PreferenceScore | null
   final_explanation: string | null
 }

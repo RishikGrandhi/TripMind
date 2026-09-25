@@ -8,6 +8,7 @@ from app.domain.models import (
     HotelOption,
     RouteResult,
     TransportMode,
+    WeatherResult,
 )
 
 
@@ -32,6 +33,9 @@ class HotelSearchTool(Protocol):
         min_rating: Decimal | None = None,
         required_amenities: set[str] | None = None,
         rooms: int = 1,
+        check_in: date | None = None,
+        check_out: date | None = None,
+        adults: int | None = None,
     ) -> list[HotelOption]: ...
 
 
@@ -49,3 +53,7 @@ class ActivitySearchTool(Protocol):
         category: str | None = None,
         max_cost: Decimal | None = None,
     ) -> list[ActivityOption]: ...
+
+
+class WeatherTool(Protocol):
+    def get_forecast(self, city_id: str, target_date: date) -> WeatherResult: ...

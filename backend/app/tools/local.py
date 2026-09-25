@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from app.domain.models import (
     ActivityOption,
+    DataSource,
     FlightOption,
     HotelOption,
     RouteResult,
@@ -17,6 +18,8 @@ def _require_positive(value: int, label: str) -> None:
 
 
 class LocalFlightSearchTool:
+    provider_source = DataSource.LOCAL_DEMO
+
     def __init__(self, catalog: LocalDataCatalog) -> None:
         self._flights = tuple(catalog.flights)
 
@@ -37,12 +40,14 @@ class LocalFlightSearchTool:
             and flight.destination_city_id == destination_city_id
             and (travel_date is None or flight.departure.date() == travel_date)
             and (max_price is None or flight.price <= max_price)
-            and flight.available_seats >= travelers
+            and (flight.available_seats is None or flight.available_seats >= travelers)
         ]
         return sorted(results, key=lambda item: (item.price, item.duration_minutes, item.departure, item.id))
 
 
 class LocalHotelSearchTool:
+    provider_source = DataSource.LOCAL_DEMO
+
     def __init__(self, catalog: LocalDataCatalog) -> None:
         self._hotels = tuple(catalog.hotels)
 
@@ -54,22 +59,43 @@ class LocalHotelSearchTool:
         min_rating: Decimal | None = None,
         required_amenities: set[str] | None = None,
         rooms: int = 1,
+        check_in: date | None = None,
+        check_out: date | None = None,
+        adults: int | None = None,
     ) -> list[HotelOption]:
         _require_positive(rooms, "rooms")
+        if adults is not None:
+            _require_positive(adults, "adults")
+        if (check_in is None) != (check_out is None):
+            raise ValueError("check_in and check_out must be provided together")
+        if check_in is not None and check_out <= check_in:
+            raise ValueError("check_out must be after check_in")
         amenities = {item.casefold() for item in (required_amenities or set())}
         results = [
             hotel
             for hotel in self._hotels
             if hotel.city_id == city_id
             and (max_price_per_night is None or hotel.price_per_night <= max_price_per_night)
-            and (min_rating is None or hotel.rating >= min_rating)
+            and (
+                min_rating is None
+                or (hotel.rating is not None and hotel.rating >= min_rating)
+            )
             and amenities.issubset({item.casefold() for item in hotel.amenities})
-            and hotel.available_rooms >= rooms
+            and (hotel.available_rooms is None or hotel.available_rooms >= rooms)
         ]
-        return sorted(results, key=lambda item: (item.price_per_night, -item.rating, item.id))
+        return sorted(
+            results,
+            key=lambda item: (
+                item.price_per_night,
+                -(item.rating if item.rating is not None else Decimal("0")),
+                item.id,
+            ),
+        )
 
 
 class LocalRouteTool:
+    provider_source = DataSource.LOCAL_DEMO
+
     def __init__(self, catalog: LocalDataCatalog) -> None:
         self._routes = tuple(catalog.routes)
 
@@ -103,6 +129,8 @@ class LocalRouteTool:
 
 
 class LocalActivitySearchTool:
+    provider_source = DataSource.LOCAL_DEMO
+
     def __init__(self, catalog: LocalDataCatalog) -> None:
         self._activities = tuple(catalog.activities)
 
@@ -119,6 +147,17 @@ class LocalActivitySearchTool:
             for activity in self._activities
             if activity.city_id == city_id
             and (normalized_category is None or activity.category.casefold() == normalized_category)
-            and (max_cost is None or activity.price <= max_cost)
+            and (
+                max_cost is None
+                or (activity.price is not None and activity.price <= max_cost)
+            )
         ]
-        return sorted(results, key=lambda item: (item.price, item.duration_minutes, item.id))
+        return sorted(
+            results,
+            key=lambda item: (
+                item.price is None,
+                item.price if item.price is not None else Decimal("0"),
+                item.duration_minutes or 0,
+                item.id,
+            ),
+        )

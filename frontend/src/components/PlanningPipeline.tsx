@@ -4,6 +4,7 @@ import { Card, SectionHeading } from './ui'
 
 export function PlanningPipeline({ response }: { response: NaturalLanguagePlanResponse }) {
   const state = response.result
+  const travelSource = actualTravelSource(response)
   const finalValid = state.current_validation?.is_valid === true
   const stages = [
     ['Request extracted', true, label(response.extraction.provider_used)],
@@ -29,12 +30,28 @@ export function PlanningPipeline({ response }: { response: NaturalLanguagePlanRe
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-800 pt-5 text-sm lg:grid-cols-4">
         <Source name="AI extraction" value={response.extraction.provider_used} />
-        <Source name="Travel data" value={response.sources.travel_source} />
+        <Source name="Travel data" value={travelSource} />
         <Source name="Validation" value={response.sources.validation} />
         <Source name="Replanning" value={response.sources.replanning} />
+        {state.weather_results.length > 0 && <Source name="Weather" value={weatherSource(state)} />}
       </div>
     </Card>
   )
+}
+
+function actualTravelSource(response: NaturalLanguagePlanResponse): string {
+  const items = response.result.current_itinerary?.days.flatMap((day) => day.items) ?? []
+  if (items.some((item) => item.fallback_from !== null)) return 'mixed / explicit fallback'
+  const sources = [...new Set(items.map((item) => item.source))]
+  if (sources.length === 0) return response.sources.travel_source
+  if (sources.length === 1) return sources[0]
+  return `mixed: ${sources.join(', ')}`
+}
+
+function weatherSource(state: NaturalLanguagePlanResponse['result']): string {
+  const available = state.weather_results.find((item) => item.weather_available)
+  if (available) return available.source
+  return state.weather_results[0]?.reason ?? 'unavailable'
 }
 
 function Source({ name, value }: { name: string; value: string }) {

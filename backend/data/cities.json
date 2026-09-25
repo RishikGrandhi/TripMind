@@ -1,10 +1,10 @@
 [
-  {"id": "city-mum", "name": "Mumbai", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-goi", "name": "Goa", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-maa", "name": "Chennai", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-del", "name": "Delhi", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-jai", "name": "Jaipur", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-agr", "name": "Agra", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-sml", "name": "Shimla", "country_code": "IN", "timezone": "Asia/Kolkata"},
-  {"id": "city-hyd", "name": "Hyderabad", "country_code": "IN", "timezone": "Asia/Kolkata"}
+  {"id": "city-mum", "name": "Mumbai", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "BOM", "latitude": "19.0760", "longitude": "72.8777"},
+  {"id": "city-goi", "name": "Goa", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "GOI", "latitude": "15.4909", "longitude": "73.8278"},
+  {"id": "city-maa", "name": "Chennai", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "MAA", "latitude": "13.0827", "longitude": "80.2707"},
+  {"id": "city-del", "name": "Delhi", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "DEL", "latitude": "28.6139", "longitude": "77.2090"},
+  {"id": "city-jai", "name": "Jaipur", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "JAI", "latitude": "26.9124", "longitude": "75.7873"},
+  {"id": "city-agr", "name": "Agra", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "AGR", "latitude": "27.1767", "longitude": "78.0081"},
+  {"id": "city-sml", "name": "Shimla", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "SLV", "latitude": "31.1048", "longitude": "77.1734"},
+  {"id": "city-hyd", "name": "Hyderabad", "country_code": "IN", "timezone": "Asia/Kolkata", "airport_code": "HYD", "latitude": "17.3850", "longitude": "78.4867"}
 ]

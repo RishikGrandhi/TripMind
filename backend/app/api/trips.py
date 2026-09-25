@@ -86,7 +86,13 @@ def plan_trip(
         repository.save(
             state=result,
             request_payload=request,
-            provider_metadata={"request_type": "structured", "provider_used": "none"},
+            provider_metadata={
+                "request_type": "structured",
+                "requested_provider": result.requested_provider,
+                "provider_used": result.provider_used,
+                "fallback_used": result.fallback_used,
+                "fallback_reason": result.fallback_reason,
+            },
         )
     except PersistenceError as exc:
         raise _persistence_unavailable(exc) from exc

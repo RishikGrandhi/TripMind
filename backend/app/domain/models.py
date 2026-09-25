@@ -62,6 +62,14 @@ class ToolCallStatus(StrEnum):
     FAILED = "failed"
 
 
+class AgentTraceStatus(StrEnum):
+    SUCCEEDED = "succeeded"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    FALLBACK = "fallback"
+    FAILED = "failed"
+
+
 class CorrectiveActionType(StrEnum):
     SEARCH_CHEAPER_FLIGHT = "search_cheaper_flight"
     SEARCH_CHEAPER_HOTEL = "search_cheaper_hotel"
@@ -79,6 +87,17 @@ class ReplanningOutcome(StrEnum):
 
 class DataSource(StrEnum):
     LOCAL_DEMO = "local_demo"
+    SERPAPI = "serpapi"
+    STAYINGAPI = "stayingapi"
+    GEOAPIFY = "geoapify"
+    OPENWEATHER = "openweather"
+
+
+class PriceSource(StrEnum):
+    LIVE_QUOTE = "live_quote"
+    LOCAL_DEMO = "local_demo"
+    ESTIMATED = "estimated"
+    UNKNOWN = "unknown"
 
 
 class TravelConstraints(DomainModel):
@@ -142,6 +161,9 @@ class City(DomainModel):
     name: str = Field(min_length=1)
     country_code: str = Field(min_length=2, max_length=2)
     timezone: str = Field(min_length=1)
+    airport_code: str | None = Field(default=None, min_length=3, max_length=3)
+    latitude: Decimal | None = Field(default=None, ge=-90, le=90)
+    longitude: Decimal | None = Field(default=None, ge=-180, le=180)
 
 
 class FlightOption(DomainModel):
@@ -155,9 +177,12 @@ class FlightOption(DomainModel):
     duration_minutes: int = Field(gt=0)
     stops: int = Field(default=0, ge=0, le=4)
     price: PositiveMoney = Field(gt=0)
-    available_seats: int = Field(ge=0)
+    available_seats: int | None = Field(default=None, ge=0)
     source: DataSource = DataSource.LOCAL_DEMO
     is_live: bool = False
+    is_estimate: bool = False
+    price_source: PriceSource = PriceSource.LOCAL_DEMO
+    fallback_from: DataSource | None = None
 
     @model_validator(mode="after")
     def chronological_flight(self) -> "FlightOption":
@@ -171,11 +196,14 @@ class HotelOption(DomainModel):
     city_id: str
     name: str
     price_per_night: PositiveMoney = Field(gt=0)
-    rating: Decimal = Field(ge=0, le=5)
+    rating: Decimal | None = Field(default=None, ge=0, le=5)
     amenities: list[str] = Field(default_factory=list)
-    available_rooms: int = Field(ge=0)
+    available_rooms: int | None = Field(default=None, ge=0)
     source: DataSource = DataSource.LOCAL_DEMO
     is_live: bool = False
+    is_estimate: bool = False
+    price_source: PriceSource = PriceSource.LOCAL_DEMO
+    fallback_from: DataSource | None = None
 
 
 class ActivityOption(DomainModel):
@@ -183,12 +211,21 @@ class ActivityOption(DomainModel):
     city_id: str
     name: str
     category: str
-    duration_minutes: int = Field(gt=0)
-    price: Money = Field(ge=0)
+    duration_minutes: int | None = Field(default=None, gt=0)
+    price: Money | None = Field(default=None, ge=0)
     opening_time: str | None = None
     closing_time: str | None = None
     source: DataSource = DataSource.LOCAL_DEMO
     is_live: bool = False
+    is_estimate: bool = False
+    price_source: PriceSource = PriceSource.LOCAL_DEMO
+    fallback_from: DataSource | None = None
+
+    @model_validator(mode="after")
+    def unknown_price_has_honest_provenance(self) -> "ActivityOption":
+        if self.price is None and self.price_source != PriceSource.UNKNOWN:
+            raise ValueError("an activity without a price requires price_source=unknown")
+        return self
 
 
 class RouteInfo(DomainModel):
@@ -203,6 +240,9 @@ class RouteInfo(DomainModel):
     unavailable_reason: str | None = None
     source: DataSource = DataSource.LOCAL_DEMO
     is_live: bool = False
+    is_estimate: bool = False
+    price_source: PriceSource = PriceSource.LOCAL_DEMO
+    fallback_from: DataSource | None = None
 
     @model_validator(mode="after")
     def feasibility_has_consistent_reason(self) -> "RouteInfo":
@@ -222,6 +262,7 @@ class RouteResult(DomainModel):
     reason: str | None = None
     source: DataSource = DataSource.LOCAL_DEMO
     is_live: bool = False
+    fallback_from: DataSource | None = None
 
     @model_validator(mode="after")
     def result_matches_route(self) -> "RouteResult":
@@ -245,6 +286,11 @@ class ItineraryItem(DomainModel):
     destination_city_id: str | None = None
     duration_minutes: int | None = Field(default=None, gt=0)
     notes: str | None = None
+    source: DataSource = DataSource.LOCAL_DEMO
+    is_live: bool = False
+    is_estimate: bool = False
+    price_source: PriceSource = PriceSource.LOCAL_DEMO
+    fallback_from: DataSource | None = None
 
     @model_validator(mode="after")
     def chronological_item(self) -> "ItineraryItem":
@@ -270,6 +316,35 @@ class CostBreakdown(DomainModel):
     @property
     def total(self) -> Decimal:
         return self.flights + self.hotels + self.activities + self.local_transport + self.other
+
+
+class WeatherForecast(DomainModel):
+    forecast_at: datetime
+    temperature_c: Decimal
+    feels_like_c: Decimal | None = None
+    condition: str
+    precipitation_probability: Decimal | None = Field(default=None, ge=0, le=1)
+    rain_mm: Decimal | None = Field(default=None, ge=0)
+    humidity_percent: int | None = Field(default=None, ge=0, le=100)
+    wind_speed_mps: Decimal | None = Field(default=None, ge=0)
+
+
+class WeatherResult(DomainModel):
+    city_id: str
+    requested_date: date
+    weather_available: bool
+    reason: str | None = None
+    forecasts: list[WeatherForecast] = Field(default_factory=list)
+    source: DataSource = DataSource.OPENWEATHER
+    is_live: bool = True
+
+    @model_validator(mode="after")
+    def availability_matches_forecasts(self) -> "WeatherResult":
+        if self.weather_available and not self.forecasts:
+            raise ValueError("available weather requires at least one forecast")
+        if not self.weather_available and not self.reason:
+            raise ValueError("unavailable weather requires a reason")
+        return self
 
 
 class Itinerary(DomainModel):
@@ -380,6 +455,23 @@ class ToolCallRecord(DomainModel):
     error: str | None = None
 
 
+class AgentTraceRecord(DomainModel):
+    step: int = Field(ge=1)
+    provider: str = Field(min_length=1)
+    action: str = Field(min_length=1)
+    reason_code: str | None = None
+    tool: str | None = None
+    source: DataSource | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    status: AgentTraceStatus
+    result_summary: str | None = None
+    violation: ViolationCode | None = None
+    before_component_id: str | None = None
+    after_component_id: str | None = None
+    before_value: Money | int | str | None = None
+    after_value: Money | int | str | None = None
+
+
 class TripState(DomainModel):
     trip_id: str
     original_request: str
@@ -390,12 +482,19 @@ class TripState(DomainModel):
     hotel_candidates: list[HotelOption] = Field(default_factory=list)
     activity_candidates: list[ActivityOption] = Field(default_factory=list)
     route_candidates: list[RouteInfo] = Field(default_factory=list)
+    weather_results: list[WeatherResult] = Field(default_factory=list)
     initial_itinerary: Itinerary | None = None
     current_itinerary: Itinerary | None = None
     current_validation: ValidationResult | None = None
     validation_history: list[ValidationResult] = Field(default_factory=list)
     replanning_attempts: list[ReplanningAttempt] = Field(default_factory=list)
     tool_call_history: list[ToolCallRecord] = Field(default_factory=list)
+    agent_trace: list[AgentTraceRecord] = Field(default_factory=list)
+    requested_provider: str = "fallback"
+    provider_used: str = "fallback"
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    agent_steps_used: int = Field(default=0, ge=0)
     preference_score: PreferenceScore | None = None
     final_explanation: str | None = None
 

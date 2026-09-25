@@ -1,7 +1,13 @@
 from app.tools.local_data import LocalDataCatalog, LocalDataError, load_catalog, load_records
 
 __all__ = ["LocalDataCatalog", "LocalDataError", "load_catalog", "load_records"]
-from app.tools.contracts import ActivitySearchTool, FlightSearchTool, HotelSearchTool, RouteTool
+from app.tools.contracts import (
+    ActivitySearchTool,
+    FlightSearchTool,
+    HotelSearchTool,
+    RouteTool,
+    WeatherTool,
+)
 from app.tools.local import (
     LocalActivitySearchTool,
     LocalFlightSearchTool,
@@ -20,5 +26,6 @@ __all__ = [
     "LocalRouteTool",
     "RouteTool",
     "ToolRegistry",
+    "WeatherTool",
     "create_tool_registry",
 ]

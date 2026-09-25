@@ -25,11 +25,18 @@ def selection_overrides_from_itinerary(
     itinerary: Itinerary,
     constraints: TravelConstraints,
     catalog: LocalDataCatalog,
+    *,
+    flight_candidates: list[FlightOption] | None = None,
+    hotel_candidates: list[HotelOption] | None = None,
+    activity_candidates: list[ActivityOption] | None = None,
+    route_candidates: list[RouteInfo] | None = None,
 ) -> CandidateSelectionOverrides:
-    flights = {item.id: item for item in catalog.flights}
-    routes = {item.id: item for item in catalog.routes}
-    hotels = {item.id: item for item in catalog.hotels}
-    activities = {item.id: item for item in catalog.activities}
+    flights = {item.id: item for item in [*catalog.flights, *(flight_candidates or [])]}
+    routes = {item.id: item for item in [*catalog.routes, *(route_candidates or [])]}
+    hotels = {item.id: item for item in [*catalog.hotels, *(hotel_candidates or [])]}
+    activities = {
+        item.id: item for item in [*catalog.activities, *(activity_candidates or [])]
+    }
     items = [item for day in itinerary.days for item in day.items]
     transport_items = sorted(
         (

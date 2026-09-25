@@ -65,8 +65,12 @@ Say: “The cheapest available flight is still above ₹4,000. TripMind stops af
 
 ## 7. Architecture, tests, and evaluation — 60 seconds
 
-Open `docs/architecture.md` and `docs/evaluation-results.md`.
+Open `docs/architecture.md`, `docs/evaluation-results.md`, and `docs/agentic-evaluation-results.md`.
 
-Say: “The architecture keeps extraction, planning tools, validation, replanning, scoring, and persistence separate. The suite covers domain/data/tool logic, limits, fallback, API, deterministic replay, and persistence. Seven real-pipeline evaluation scenarios cover normal, repairable, multi-city, simultaneous-violation, and impossible outcomes.”
+Say: “The architecture keeps extraction, planning tools, validation, replanning, scoring, and persistence separate. SC-001 through SC-007 are the unchanged deterministic real-pipeline baseline. SC-008 through SC-013 separately use fixed mocked agent/provider behavior to demonstrate weather-aware adaptation, different tool sequences, guarded repairs, provider failure, and iteration limits without network variability.”
 
 Finish: “TripMind’s academic contribution is inspectable hybrid planning: language assistance at the boundary, deterministic authority for correctness, bounded repair, and an honest infeasible result.”
+
+## Optional Groq agenticity extension
+
+For a separately credentialed demonstration, keep `APP_MODE=demo` and `EXTERNAL_PROVIDERS_ENABLED=false`, then set `LLM_PROVIDER=groq`, `GROQ_API_KEY`, and an available `GROQ_MODEL`. Explain that Groq chooses the next generic action from concise structured `TripState`, observes normalized results, and can propose a repair only after Python reports a violation. Show the **AI agent / tool trace** in the frontend, then reopen the plan from **Recent plans** to show the identical persisted trace. Emphasize that local JSON supplies travel data while Python validates parameters, executes tools, calculates exact costs, authorizes repairs, validates feasibility, and enforces all three bounds. Do not claim this connected mode was verified unless the Groq smoke command succeeded with the configured credential.
