@@ -1,0 +1,10 @@
+[
+  {"id": "city-mum", "name": "Mumbai", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-goi", "name": "Goa", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-maa", "name": "Chennai", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-del", "name": "Delhi", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-jai", "name": "Jaipur", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-agr", "name": "Agra", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-sml", "name": "Shimla", "country_code": "IN", "timezone": "Asia/Kolkata"},
+  {"id": "city-hyd", "name": "Hyderabad", "country_code": "IN", "timezone": "Asia/Kolkata"}
+]

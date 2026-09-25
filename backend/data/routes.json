@@ -1,0 +1,22 @@
+[
+  {"id":"route-mum-goi-train-001","origin_city_id":"city-mum","destination_city_id":"city-goi","mode":"train","duration_minutes":510,"distance_km":"587.0","estimated_cost":"950.00"},
+  {"id":"route-mum-goi-bus-001","origin_city_id":"city-mum","destination_city_id":"city-goi","mode":"bus","duration_minutes":720,"distance_km":"590.0","estimated_cost":"1250.00"},
+  {"id":"route-mum-goi-car-001","origin_city_id":"city-mum","destination_city_id":"city-goi","mode":"car","duration_minutes":660,"distance_km":"590.0","estimated_cost":"6500.00"},
+  {"id":"route-goi-mum-train-001","origin_city_id":"city-goi","destination_city_id":"city-mum","mode":"train","duration_minutes":525,"distance_km":"587.0","estimated_cost":"950.00"},
+  {"id":"route-del-sml-car-001","origin_city_id":"city-del","destination_city_id":"city-sml","mode":"car","duration_minutes":450,"distance_km":"350.0","estimated_cost":"5200.00"},
+  {"id":"route-del-sml-bus-001","origin_city_id":"city-del","destination_city_id":"city-sml","mode":"bus","duration_minutes":600,"distance_km":"360.0","estimated_cost":"900.00"},
+  {"id":"route-del-sml-train-001","origin_city_id":"city-del","destination_city_id":"city-sml","mode":"train","duration_minutes":720,"distance_km":"380.0","estimated_cost":"750.00","is_feasible":false,"unavailable_reason":"The direct demo train route is unavailable; a transfer would exceed this dataset's supported route."},
+  {"id":"route-del-jai-train-001","origin_city_id":"city-del","destination_city_id":"city-jai","mode":"train","duration_minutes":285,"distance_km":"310.0","estimated_cost":"650.00"},
+  {"id":"route-del-jai-bus-001","origin_city_id":"city-del","destination_city_id":"city-jai","mode":"bus","duration_minutes":360,"distance_km":"285.0","estimated_cost":"550.00"},
+  {"id":"route-del-jai-car-001","origin_city_id":"city-del","destination_city_id":"city-jai","mode":"car","duration_minutes":330,"distance_km":"280.0","estimated_cost":"3600.00"},
+  {"id":"route-del-agr-train-001","origin_city_id":"city-del","destination_city_id":"city-agr","mode":"train","duration_minutes":120,"distance_km":"195.0","estimated_cost":"450.00"},
+  {"id":"route-del-agr-car-001","origin_city_id":"city-del","destination_city_id":"city-agr","mode":"car","duration_minutes":240,"distance_km":"233.0","estimated_cost":"3000.00"},
+  {"id":"route-agr-jai-train-001","origin_city_id":"city-agr","destination_city_id":"city-jai","mode":"train","duration_minutes":240,"distance_km":"240.0","estimated_cost":"500.00"},
+  {"id":"route-agr-jai-bus-001","origin_city_id":"city-agr","destination_city_id":"city-jai","mode":"bus","duration_minutes":330,"distance_km":"240.0","estimated_cost":"450.00"},
+  {"id":"route-agr-jai-car-001","origin_city_id":"city-agr","destination_city_id":"city-jai","mode":"car","duration_minutes":270,"distance_km":"240.0","estimated_cost":"3200.00"},
+  {"id":"route-maa-del-train-001","origin_city_id":"city-maa","destination_city_id":"city-del","mode":"train","duration_minutes":1980,"distance_km":"2180.0","estimated_cost":"2200.00"},
+  {"id":"route-maa-del-car-001","origin_city_id":"city-maa","destination_city_id":"city-del","mode":"car","duration_minutes":2100,"distance_km":"2200.0","estimated_cost":"24000.00","is_feasible":false,"unavailable_reason":"The demo catalog marks this road journey infeasible because it exceeds the supported continuous travel window."},
+  {"id":"route-hyd-goi-bus-001","origin_city_id":"city-hyd","destination_city_id":"city-goi","mode":"bus","duration_minutes":840,"distance_km":"660.0","estimated_cost":"1100.00"},
+  {"id":"route-hyd-goi-car-001","origin_city_id":"city-hyd","destination_city_id":"city-goi","mode":"car","duration_minutes":780,"distance_km":"650.0","estimated_cost":"7200.00"},
+  {"id":"route-goi-local-car-001","origin_city_id":"city-goi","destination_city_id":"city-goi","mode":"car","duration_minutes":35,"distance_km":"22.5","estimated_cost":"650.00"}
+]

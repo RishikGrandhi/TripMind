@@ -1,0 +1,23 @@
+[
+  {"id":"activity-goi-001","city_id":"city-goi","name":"Old Goa Heritage Walk","category":"culture","duration_minutes":120,"price":"500.00","opening_time":"09:00","closing_time":"17:00"},
+  {"id":"activity-goi-002","city_id":"city-goi","name":"Miramar Sunset Walk","category":"nature","duration_minutes":90,"price":"0.00","opening_time":"16:00","closing_time":"19:00"},
+  {"id":"activity-goi-003","city_id":"city-goi","name":"Demo Spice Farm Tour","category":"food","duration_minutes":180,"price":"1200.00","opening_time":"10:00","closing_time":"16:00"},
+  {"id":"activity-goi-004","city_id":"city-goi","name":"Mandovi Demo Cruise","category":"leisure","duration_minutes":120,"price":"1800.00","opening_time":"17:00","closing_time":"21:00"},
+  {"id":"activity-sml-001","city_id":"city-sml","name":"Ridge and Mall Road Walk","category":"culture","duration_minutes":120,"price":"0.00","opening_time":"08:00","closing_time":"20:00"},
+  {"id":"activity-sml-002","city_id":"city-sml","name":"Jakhu Temple Trail","category":"nature","duration_minutes":180,"price":"300.00","opening_time":"07:00","closing_time":"18:00"},
+  {"id":"activity-sml-003","city_id":"city-sml","name":"Demo Toy Train View Ride","category":"leisure","duration_minutes":150,"price":"900.00","opening_time":"09:00","closing_time":"16:00"},
+  {"id":"activity-del-001","city_id":"city-del","name":"India Gate Heritage Circuit","category":"culture","duration_minutes":150,"price":"0.00","opening_time":"06:00","closing_time":"22:00"},
+  {"id":"activity-del-002","city_id":"city-del","name":"Old Delhi Food Walk Demo","category":"food","duration_minutes":180,"price":"1400.00","opening_time":"10:00","closing_time":"20:00"},
+  {"id":"activity-del-003","city_id":"city-del","name":"National Museum Demo Visit","category":"museum","duration_minutes":150,"price":"150.00","opening_time":"10:00","closing_time":"17:00"},
+  {"id":"activity-jai-001","city_id":"city-jai","name":"Hawa Mahal Photo Walk","category":"culture","duration_minutes":90,"price":"250.00","opening_time":"09:00","closing_time":"17:00"},
+  {"id":"activity-jai-002","city_id":"city-jai","name":"Amber Fort Demo Tour","category":"culture","duration_minutes":210,"price":"700.00","opening_time":"08:00","closing_time":"17:30"},
+  {"id":"activity-jai-003","city_id":"city-jai","name":"Rajasthani Dinner Demo","category":"food","duration_minutes":150,"price":"1600.00","opening_time":"18:00","closing_time":"22:00"},
+  {"id":"activity-agr-001","city_id":"city-agr","name":"Taj Sunrise Demo Visit","category":"culture","duration_minutes":180,"price":"1100.00","opening_time":"06:00","closing_time":"18:00"},
+  {"id":"activity-agr-002","city_id":"city-agr","name":"Mehtab Bagh Walk","category":"nature","duration_minutes":90,"price":"300.00","opening_time":"06:00","closing_time":"18:00"},
+  {"id":"activity-mum-001","city_id":"city-mum","name":"Gateway and Colaba Walk","category":"culture","duration_minutes":150,"price":"0.00","opening_time":"07:00","closing_time":"20:00"},
+  {"id":"activity-mum-002","city_id":"city-mum","name":"Mumbai Street Food Demo","category":"food","duration_minutes":180,"price":"1300.00","opening_time":"16:00","closing_time":"21:00"},
+  {"id":"activity-maa-001","city_id":"city-maa","name":"Marina Sunrise Walk","category":"nature","duration_minutes":90,"price":"0.00","opening_time":"05:00","closing_time":"09:00"},
+  {"id":"activity-maa-002","city_id":"city-maa","name":"Mylapore Culture Walk Demo","category":"culture","duration_minutes":150,"price":"600.00","opening_time":"08:00","closing_time":"18:00"},
+  {"id":"activity-hyd-001","city_id":"city-hyd","name":"Charminar Heritage Walk","category":"culture","duration_minutes":120,"price":"400.00","opening_time":"09:00","closing_time":"18:00"},
+  {"id":"activity-hyd-002","city_id":"city-hyd","name":"Hyderabadi Food Trail Demo","category":"food","duration_minutes":180,"price":"1500.00","opening_time":"12:00","closing_time":"21:00"}
+]

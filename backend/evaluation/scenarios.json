@@ -1,0 +1,79 @@
+[
+  {
+    "id": "SC-001",
+    "name": "Normal feasible trip",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-001",
+      "natural_language_request": "Mumbai to Goa for four days with a generous budget.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"50000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_transport_modes":["flight"],"preferred_activity_categories":["nature"],"prefer_direct_flights":true}
+    }
+  },
+  {
+    "id": "SC-002",
+    "name": "Budget violation repaired successfully",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-002",
+      "natural_language_request": "Mumbai to Goa for four days under 30000 rupees.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"30000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_transport_modes":["flight"],"preferred_activity_categories":["nature"]}
+    }
+  },
+  {
+    "id": "SC-003",
+    "name": "Hotel ceiling conflict repaired",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-003",
+      "natural_language_request": "Mumbai to Goa with a hotel ceiling of 3000 rupees.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"80000","max_hotel_price_per_night":"3000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_hotel_amenities":["pool","breakfast"]}
+    }
+  },
+  {
+    "id": "SC-004",
+    "name": "Daily travel-time route conflict",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-004",
+      "natural_language_request": "Delhi to Shimla with no more than eight hours of travel per day.",
+      "constraints": {"origin_city_id":"city-del","destination_city_id":"city-sml","start_date":"2027-01-20","end_date":"2027-01-23","travelers":1,"total_budget":"50000","max_travel_duration_minutes":480,"allowed_transport_modes":["bus","car"]},
+      "preferences": {"preferred_transport_modes":["bus"]}
+    }
+  },
+  {
+    "id": "SC-005",
+    "name": "Multi-city planning",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-005",
+      "natural_language_request": "Chennai to Delhi and Jaipur in five days.",
+      "constraints": {"origin_city_id":"city-maa","destination_city_id":"city-del","additional_destination_city_ids":["city-jai"],"start_date":"2027-02-10","end_date":"2027-02-14","travelers":1,"total_budget":"100000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_transport_modes":["flight"],"prefer_direct_flights":true}
+    }
+  },
+  {
+    "id": "SC-006",
+    "name": "Impossible flight ceiling",
+    "expected_status": "infeasible",
+    "request": {
+      "request_id": "eval-sc-006",
+      "natural_language_request": "Mumbai to Goa with a flight ceiling below every available option.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"30000","max_flight_price":"4000","allowed_transport_modes":["flight"]},
+      "preferences": {}
+    }
+  },
+  {
+    "id": "SC-007",
+    "name": "Multiple simultaneous violations",
+    "expected_status": "completed",
+    "request": {
+      "request_id": "eval-sc-007",
+      "natural_language_request": "Mumbai to Goa with budget, flight and hotel ceilings.",
+      "constraints": {"origin_city_id":"city-mum","destination_city_id":"city-goi","start_date":"2027-01-15","end_date":"2027-01-18","travelers":1,"total_budget":"18000","max_flight_price":"6000","max_hotel_price_per_night":"3000","allowed_transport_modes":["flight"]},
+      "preferences": {"preferred_transport_modes":["flight"]}
+    }
+  }
+]
